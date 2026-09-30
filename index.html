@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bilgi Yarışması</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================
+   TASARIM DEGISKENLERI
+   ========================================================== */
+:root {
+  --bg: #EEF0F2;
+  --surface: #FBFBFA;
+  --ink: #2E3944;
+  --muted: #76838F;
+  --line: #D5DAE0;
+  --accent: #3E4C5A;
+  --danger: #B4574F;
+
+  --p1: #DCE7F2;
+  --p1-deep: #9DB9D5;
+  --p1-tint: #E9F0F7;
+
+  --p2: #F5E3D6;
+  --p2-deep: #DDB196;
+  --p2-tint: #FAF0E8;
+
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+input, select { -webkit-user-select: text; user-select: text; }
+:focus-visible { outline: 3px solid var(--p1-deep); outline-offset: 2px; }
+
+.screen { position: fixed; inset: 0; display: none; }
+.screen.active { display: flex; }
+
+/* ==========================================================
+   ANA MENU
+   ========================================================== */
+.api-panel {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  display: grid;
+  gap: 10px;
+  padding: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  transition: border-color .2s;
+}
+.api-panel.open {
+  width: min(300px, 30vw);
+  min-width: 240px;
+  padding: 8px 8px 14px;
+}
+.api-panel.attention { border-color: var(--danger); }
+
+.api-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+}
+.api-toggle svg { width: 18px; height: 18px; flex: none; }
+.api-toggle .status {
+  width: 9px;
+  height: 9px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--line);
+}
+.api-panel.has-key .api-toggle .status { background: #8DB79A; }
+.api-body { display: none; gap: 10px; padding: 4px 6px 0; }
+.api-panel.open .api-body { display: grid; }
+.api-panel label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.api-panel input,
+.api-panel select {
+  width: 100%;
+  padding: 9px 11px;
+  font-size: 15px;
+  font-weight: 500;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.key-row { display: flex; gap: 6px; }
+.key-row input { flex: 1; min-width: 0; }
+.ghost-btn {
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+#customModel[hidden] { display: none; }
+
+.menu-center {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 4.5vh, 48px);
+  padding: 0 24px;
+}
+.menu-title {
+  font-size: clamp(28px, 3.6vw, 56px);
+  font-weight: 800;
+  text-align: center;
+}
+.name-row { display: flex; gap: clamp(16px, 3vw, 44px); }
+.name-card {
+  width: clamp(220px, 27vw, 400px);
+  padding: clamp(16px, 2.6vh, 28px) 20px;
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  border-radius: 22px;
+}
+.name-card.p1 { background: var(--p1); }
+.name-card.p2 { background: var(--p2); }
+.name-card small { font-size: clamp(12px, 1.1vw, 16px); font-weight: 700; color: var(--muted); }
+.name-card input {
+  width: 100%;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: clamp(24px, 3vw, 46px);
+  font-weight: 800;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px dashed rgba(46, 57, 68, .3);
+  border-radius: 0;
+  outline: none;
+}
+.name-card input:focus { border-bottom: 2px solid var(--ink); }
+
+.play-btn {
+  padding: .3em 1.7em;
+  font-size: clamp(32px, 4.6vw, 68px);
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #fff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  transition: transform .12s;
+}
+.play-btn:active { transform: scale(.97); }
+.menu-error {
+  min-height: 1.4em;
+  max-width: 560px;
+  font-size: clamp(14px, 1.3vw, 20px);
+  font-weight: 700;
+  text-align: center;
+  color: var(--danger);
+}
+
+.sound-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+}
+.sound-btn svg { width: 24px; height: 24px; }
+.sound-btn .icon-off { display: none; }
+.sound-btn.muted .icon-on { display: none; }
+.sound-btn.muted .icon-off { display: block; }
+
+/* ==========================================================
+   OYUN EKRANI (BOLUNMUS)
+   ========================================================== */
+#screen-game.active { display: grid; grid-template-columns: 1fr 1fr; }
+#screen-game::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  background: rgba(46, 57, 68, .25);
+  z-index: 2;
+}
+.half {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(12px, 2.4vh, 28px);
+  padding: clamp(14px, 2.4vh, 28px) clamp(14px, 2vw, 32px);
+  min-width: 0;
+}
+.half.p1 { background: var(--p1-tint); --deep: var(--p1-deep); --soft: var(--p1); }
+.half.p2 { background: var(--p2-tint); --deep: var(--p2-deep); --soft: var(--p2); }
+
+.half-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.jokers { display: flex; gap: 8px; }
+.joker {
+  padding: .5em 1em;
+  font-size: clamp(12px, 1.2vw, 18px);
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1.5px solid var(--deep);
+  border-radius: 999px;
+  transition: transform .12s;
+}
+.joker:active { transform: scale(.95); }
+.player-info { min-width: 0; }
+.p1 .player-info { text-align: right; }
+.p2 .player-info { text-align: left; }
+.player-name {
+  font-size: clamp(18px, 2vw, 32px);
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-counter { font-size: clamp(12px, 1.1vw, 16px); font-weight: 700; color: var(--muted); }
+
+.q-card {
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 3vh, 36px) clamp(16px, 2vw, 36px);
+  text-align: center;
+  font-size: clamp(20px, 2.4vw, 42px);
+  font-weight: 700;
+  line-height: 1.35;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+}
+
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.6vh, 18px); }
+.opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: clamp(70px, 14vh, 130px);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: clamp(16px, 1.7vw, 28px);
+  font-weight: 700;
+  line-height: 1.25;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  transition: transform .12s, border-color .12s;
+}
+.opt:active { transform: scale(.98); border-color: var(--deep); }
+.opt .letter {
+  flex: none;
+  width: 2em;
+  height: 2em;
+  display: grid;
+  place-items: center;
+  font-size: .85em;
+  font-weight: 800;
+  background: var(--soft);
+  border-radius: 50%;
+}
+.opt .opt-text { min-width: 0; overflow-wrap: anywhere; }
+
+.back-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+}
+.back-btn svg { width: 18px; height: 18px; }
+
+/* ==========================================================
+   YUKLENIYOR KATMANI
+   ========================================================== */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(238, 240, 242, .94);
+}
+.loading.active { display: flex; }
+.spinner {
+  width: 56px;
+  height: 56px;
+  border: 5px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+.loading p { font-size: clamp(18px, 2vw, 28px); font-weight: 700; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 3s; }
+  * { transition: none !important; }
+}
+
+/* ==========================================================
+   OYUN MEKANIKLERI
+   ========================================================== */
+.half { grid-template-rows: auto 1fr auto auto; }
+.meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.p1 .meta { justify-content: flex-end; }
+.score { padding: .1em .75em; font-size: clamp(12px, 1.2vw, 18px); font-weight: 800; background: var(--soft); border-radius: 999px; }
+.state-line { min-height: 1.4em; font-size: clamp(12px, 1.1vw, 16px); font-weight: 700; color: var(--muted); }
+.state-line.ok { color: #4F8A63; }
+.state-line.bad { color: var(--danger); }
+.state-line.info { color: var(--ink); }
+.joker:disabled { opacity: .4; cursor: not-allowed; text-decoration: line-through; color: var(--ink); }
+.joker.on { background: var(--soft); }
+.opt:disabled { cursor: default; color: var(--ink); opacity: .55; }
+.opt:disabled:active { transform: none; border-color: var(--line); }
+.opt.correct { background: #DDEEE2; border-color: #7FAE8F; opacity: 1; }
+.opt.wrong { background: #F4DEDB; border-color: var(--danger); opacity: 1; }
+.opt.hidden { visibility: hidden; }
+.timer { display: flex; align-items: center; gap: 12px; }
+.timebar { flex: 1; height: 14px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.timefill { height: 100%; width: 100%; background: var(--deep); border-radius: 999px; transition: width .1s linear; }
+.timefill.low { background: var(--danger); }
+.time-num { min-width: 2.6em; text-align: right; font-size: clamp(14px, 1.5vw, 24px); font-weight: 800; }
+
+.sound-btn { z-index: 4; }
+body.in-game .sound-btn {
+  bottom: auto;
+  top: calc(50% + 28px);
+  width: 38px;
+  height: 38px;
+  background: var(--surface);
+}
+body.in-game .sound-btn svg { width: 18px; height: 18px; }
+
+#loadText { max-width: 560px; padding: 0 20px; text-align: center; }
+.count-num { font-size: clamp(90px, 18vh, 180px); font-weight: 800; line-height: 1; color: var(--accent); }
+.count-num.pop { animation: pop .5s ease-out; }
+@keyframes pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+
+.winner { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; background: rgba(46, 57, 68, .55); overflow: hidden; }
+.winner.active { display: grid; }
+.winner-box {
+  position: relative; z-index: 1;
+  display: grid; gap: 14px; justify-items: center;
+  padding: clamp(24px, 5vh, 56px) clamp(28px, 5vw, 80px);
+  text-align: center;
+  background: var(--surface);
+  border: 6px solid var(--line);
+  border-radius: 28px;
+  animation: pop .6s cubic-bezier(.2, 1.4, .4, 1);
+}
+.winner-box.p1 { border-color: var(--p1-deep); }
+.winner-box.p2 { border-color: var(--p2-deep); }
+.winner-box h2 { font-size: clamp(28px, 4vw, 60px); font-weight: 800; }
+.winner-box p { font-size: clamp(16px, 2vw, 28px); font-weight: 700; color: var(--muted); }
+.trophy { font-size: clamp(64px, 12vh, 120px); line-height: 1; animation: bounce 1s ease-in-out infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+.winner-btns { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.play-btn.small { font-size: clamp(20px, 2.4vw, 32px); }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -5vh; width: 10px; height: 16px; border-radius: 2px; animation: fall linear infinite; }
+@keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+</style>
+</head>
+
+<body>
+
+<!-- ========================= ANA MENU ========================= -->
+<main id="screen-menu" class="screen active">
+
+
+  <div class="menu-center">
+    <h1 class="menu-title">Bilgi Yarışması</h1>
+
+    <div class="name-row">
+      <label class="name-card p1">
+        <small>Adı değiştirmek için dokun</small>
+        <input type="text" id="name1" value="Oyuncu 1" maxlength="16" autocomplete="off" aria-label="Oyuncu 1 adı">
+      </label>
+      <label class="name-card p2">
+        <small>Adı değiştirmek için dokun</small>
+        <input type="text" id="name2" value="Oyuncu 2" maxlength="16" autocomplete="off" aria-label="Oyuncu 2 adı">
+      </label>
+    </div>
+
+    <button type="button" class="play-btn" id="playBtn">OYNA</button>
+    <p class="menu-error" id="menuError" role="alert"></p>
+  </div>
+
+</main>
+
+<!-- ========================= OYUN EKRANI ========================= -->
+<section id="screen-game" class="screen" aria-live="polite">
+  <!-- Yarilar JavaScript ile UI.buildGame() tarafindan olusturulur -->
+  <button type="button" class="back-btn" id="backBtn" aria-label="Menüye dön" title="Menüye dön">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m15 18-6-6 6-6"/>
+    </svg>
+  </button>
+</section>
+
+<!-- ========================= YUKLENIYOR ========================= -->
+<div class="loading" id="loading" role="status">
+  <div class="count-num" id="countNum">5</div>
+  <p id="loadText">Hazır ol!</p>
+  <button type="button" class="ghost-btn" id="cancelBtn" style="padding:10px 22px;font-size:16px;">Vazgeç</button>
+</div>
+
+
+  <button type="button" class="sound-btn" id="soundBtn" aria-label="Sesi aç veya kapat" title="Ses">
+    <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+    </svg>
+    <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>
+    </svg>
+  </button>
+
+<!-- ========================= KAZANAN ========================= -->
+<div class="winner" id="winner" role="dialog" aria-live="assertive">
+  <div class="confetti" id="confetti"></div>
+  <div class="winner-box" id="winnerBox">
+    <div class="trophy">🏆</div>
+    <h2 id="winnerTitle"></h2>
+    <p id="winnerScore"></p>
+    <div class="winner-btns">
+      <button type="button" class="play-btn small" id="againBtn">TEKRAR OYNA</button>
+      <button type="button" class="ghost-btn" id="menuBtn" style="padding:12px 22px;font-size:16px;">Menü</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ==========================================================
+   AYARLAR
+   ========================================================== */
+const CONFIG = {
+  PER_LEVEL: 5,          /* kolay / orta / zor: her seviyeden 5 soru = 15 */
+  COUNTDOWN_SECONDS: 5,
+  SLOW_QUESTIONS: 10,    /* ilk 10 soru */
+  TIME_NORMAL: 15,       /* sn */
+  TIME_FAST: 10,         /* sn (11-15. sorular) */
+  STEAL_SECONDS: 5,
+  REVEAL_MS: 1900
+};
+
+/* ==========================================================
+   YARDIMCILAR
+   ========================================================== */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+/* ==========================================================
+   DEPO (localStorage / sessionStorage)
+   API anahtari yalnizca oturum boyunca (sekme kapanana dek) saklanir.
+   ========================================================== */
+const Store = {
+  get(key, fallback = '') {
+    try { const v = localStorage.getItem('bq_' + key); return v === null ? fallback : v; }
+    catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem('bq_' + key, value); } catch { /* yoksay */ }
+  },
+  getSession(key, fallback = '') {
+    try { const v = sessionStorage.getItem('bq_' + key); return v === null ? fallback : v; }
+    catch { return fallback; }
+  },
+  setSession(key, value) {
+    try { sessionStorage.setItem('bq_' + key, value); } catch { /* yoksay */ }
+  }
+};
+
+/* ==========================================================
+   SES (Web Audio API - harici dosya yok)
+   ========================================================== */
+const Sound = {
+  enabled: true,
+  ctx: null,
+
+  init() {
+    this.enabled = Store.get('sound', 'on') === 'on';
+    this.render();
+  },
+  toggle() {
+    this.enabled = !this.enabled;
+    Store.set('sound', this.enabled ? 'on' : 'off');
+    this.render();
+    if (!this.enabled) {
+      if (this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+    } else {
+      this.play('click');
+    }
+  },
+  render() {
+    $('#soundBtn').classList.toggle('muted', !this.enabled);
+  },
+  unlock() {
+    if (!this.enabled) return;
+    try {
+      if (!this.ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) this.ctx = new AC();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    } catch { /* ses desteklenmiyor */ }
+  },
+  tone(freq, at, dur, type = 'sine', vol = 0.15, freqEnd = null) {
+    const c = this.ctx;
+    const t = c.currentTime + at;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain);
+    gain.connect(c.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.03);
+  },
+  fx: {
+    click(s)   { s.tone(700, 0, .07, 'triangle', .12); },
+    tick(s)    { s.tone(880, 0, .1, 'sine', .14); },
+    start(s)   { s.tone(523, 0, .12, 'square', .08); s.tone(784, .13, .25, 'square', .08); },
+    joker(s)   { s.tone(400, 0, .25, 'sawtooth', .07, 1400); s.tone(1568, .24, .15, 'triangle', .12); },
+    correct(s) { [523, 659, 784, 1047].forEach((f, i) => s.tone(f, i * .09, .16, 'triangle', .16)); },
+    wrong(s)   { s.tone(260, 0, .35, 'sawtooth', .11, 90); },
+    timeout(s) { s.tone(330, 0, .14, 'square', .08); s.tone(247, .18, .32, 'square', .08); },
+    win(s)     { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => s.tone(f, i * .13, .22, 'triangle', .16)); },
+    draw(s)    { s.tone(440, 0, .2, 'triangle', .14); s.tone(440, .25, .3, 'triangle', .14); }
+  },
+  play(name) {
+    if (!this.enabled) return;
+    this.unlock();
+    if (!this.ctx) return;
+    try { const f = this.fx[name]; if (f) f(this); } catch { /* yoksay */ }
+  }
+};
+
+const BANK = {
+  /* Her satır: [soru, DOĞRU cevap, yanlış 1, yanlış 2, yanlış 3]  (şıklar oyunda karıştırılır) */
+  1: [
+["Türkiye'de kaç il vardır?","81","80","79","82"],
+["Türkiye'nin başkenti neresidir?","Ankara","İstanbul","İzmir","Bursa"],
+["Bir haftada kaç gün vardır?","7","6","8","5"],
+["Dayının eşine ne denir?","Yenge","Teyze","Hala","Abla"],
+["Babanın annesine ne denir?","Babaanne","Anneanne","Hala","Teyze"],
+["Güneş Sistemi'ndeki en büyük gezegen hangisidir?","Jüpiter","Satürn","Dünya","Mars"],
+["Suyun deniz seviyesinde kaynama noktası kaç derecedir?","100","90","80","120"],
+["Bir yılda kaç ay vardır?","12","10","11","13"],
+["Türkiye'nin en kalabalık şehri hangisidir?","İstanbul","Ankara","İzmir","Antalya"],
+["Türkiye Cumhuriyeti'nin kurucusu kimdir?","Mustafa Kemal Atatürk","İsmet İnönü","Fevzi Çakmak","Kâzım Karabekir"],
+["Hangi hayvan çölün gemisi olarak bilinir?","Deve","At","Fil","Zürafa"],
+["Annenin kız kardeşine ne denir?","Teyze","Hala","Yenge","Elti"],
+["Babanın kız kardeşine ne denir?","Hala","Teyze","Yenge","Abla"],
+["Dünya'nın doğal uydusu hangisidir?","Ay","Güneş","Mars","Venüs"],
+["Aşağıdakilerden hangisi bir kıta değildir?","Akdeniz","Asya","Afrika","Avrupa"],
+["İstanbul hangi iki kıtaya yayılmıştır?","Avrupa ve Asya","Asya ve Afrika","Avrupa ve Afrika","Asya ve Okyanusya"],
+["En hızlı kara hayvanı hangisidir?","Çita","Aslan","At","Kaplan"],
+["Balinalar hangi hayvan sınıfındandır?","Memeli","Balık","Sürüngen","Kuş"],
+["Bir düzinede kaç tane vardır?","12","10","20","24"],
+["Gökkuşağında kaç renk vardır?","7","5","6","8"],
+["Türkiye'nin en yüksek dağı hangisidir?","Ağrı Dağı","Erciyes","Uludağ","Palandöken"],
+["Kanı tüm vücuda pompalayan organ hangisidir?","Kalp","Akciğer","Böbrek","Mide"],
+["Bitkilerin besin üretmesine ne denir?","Fotosentez","Solunum","Sindirim","Buharlaşma"],
+["Amcanın oğlu bizim neyimiz olur?","Kuzenimiz","Kardeşimiz","Dayımız","Yeğenimiz"],
+["Kardeşimin çocuğu benim neyim olur?","Yeğenim","Kuzenim","Teyzem","Halam"],
+["Türkiye'nin para birimi nedir?","Türk Lirası","Dolar","Euro","Sterlin"],
+["Yaprakların dökülmesi hangi mevsimde olur?","Sonbahar","İlkbahar","Yaz","Kış"],
+["Dünyanın en büyük okyanusu hangisidir?","Pasifik (Büyük Okyanus)","Atlas Okyanusu","Hint Okyanusu","Arktik Okyanusu"],
+["5 x 6 kaç eder?","30","25","35","36"],
+["Hangisi bir sebzedir?","Havuç","Elma","Armut","Kiraz"],
+["Sarı ve mavi boyayı karıştırırsak hangi rengi elde ederiz?","Yeşil","Turuncu","Mor","Kahverengi"],
+["Hangisi Türkiye'nin komşusu değildir?","Mısır","Suriye","Irak","İran"],
+["Hangi gezegen Kızıl Gezegen olarak bilinir?","Mars","Venüs","Merkür","Neptün"],
+["Suyun kimyasal formülü nedir?","H2O","CO2","O2","NaCl"],
+["Dünya, Güneş'in etrafındaki turunu yaklaşık ne kadar sürede tamamlar?","1 yıl","1 ay","1 hafta","1 gün"],
+["Cumhuriyet hangi tarihte ilan edilmiştir?","29 Ekim 1923","23 Nisan 1920","30 Ağustos 1922","19 Mayıs 1919"],
+["Ulusal Egemenlik ve Çocuk Bayramı hangi gün kutlanır?","23 Nisan","19 Mayıs","30 Ağustos","10 Kasım"],
+["Türk bayrağında hangi semboller vardır?","Ay ve yıldız","Güneş ve ay","Güneş ve yıldız","İki yıldız"],
+["Bir saatte kaç dakika vardır?","60","100","30","90"],
+["İzmir hangi denizin kıyısındadır?","Ege Denizi","Karadeniz","Akdeniz","Marmara Denizi"],
+["Hangisi Karadeniz kıyısında bir şehirdir?","Trabzon","Antalya","Mersin","Muğla"],
+["Hangisi bir müzik aletidir?","Bağlama","Kepçe","Tarak","Cetvel"],
+["Yarım saat kaç dakikadır?","30","15","45","20"],
+["İnsanın klasik olarak kaç duyu organı vardır?","5","4","6","3"],
+["Ekmeğin ana maddesi hangisidir?","Un","Şeker","Süt","Pirinç"],
+["Hangi hayvan yumurtlayarak ürer?","Tavuk","İnek","Koyun","At"],
+["Welcome kelimesinin Türkçesi nedir?","Hoş geldin","Güle güle","Teşekkürler","Özür dilerim"],
+["Fransa'nın başkenti neresidir?","Paris","Roma","Madrid","Berlin"],
+["Japonya'nın başkenti neresidir?","Tokyo","Pekin","Seul","Bangkok"],
+["Artık bir yıl kaç gün sürer?","366","365","364","367"],
+["Geniş kelimesinin zıt anlamlısı hangisidir?","Dar","Uzun","Büyük","Kalın"],
+["30 Ağustos hangi bayram olarak kutlanır?","Zafer Bayramı","Cumhuriyet Bayramı","Gençlik Bayramı","Çocuk Bayramı"],
+["Kolezyum hangi ülkededir?","İtalya","Yunanistan","İspanya","Fransa"]
+  ],
+  2: [
+["Mona Lisa tablosunu kim yapmıştır?","Leonardo da Vinci","Picasso","Van Gogh","Michelangelo"],
+["İstanbul hangi yıl fethedilmiştir?","1453","1071","1299","1517"],
+["Malazgirt Savaşı hangi yılda yapılmıştır?","1071","1453","1299","1402"],
+["Dünyanın en büyük sıcak çölü hangisidir?","Sahra","Gobi","Kalahari","Arap Çölü"],
+["Altının kimyasal simgesi hangisidir?","Au","Ag","Fe","Cu"],
+["Türkiye'nin en büyük gölü hangisidir?","Van Gölü","Tuz Gölü","Beyşehir Gölü","Eğirdir Gölü"],
+["Işığın hızı yaklaşık kaç km/sn'dir?","300.000","30.000","3.000","3.000.000"],
+["Kenarları 4 cm ve 6 cm olan bir dikdörtgenin alanı kaç cm² dir?","24","20","10","48"],
+["Güneş Sistemi'nde kaç gezegen vardır?","8","9","7","10"],
+["Yerçekimi yasasıyla ünlü bilim insanı kimdir?","Isaac Newton","Thomas Edison","Nikola Tesla","Louis Pasteur"],
+["Kanı süzüp temizleyen organımız hangisidir?","Böbrek","Mide","Beyin","Kalp"],
+["İnsan vücudunun en büyük organı hangisidir?","Deri","Karaciğer","Akciğer","Kalp"],
+["Yetişkin bir insanda kaç kemik vardır?","206","306","106","250"],
+["Atatürk hangi şehirde doğmuştur?","Selanik","İstanbul","Ankara","Manastır"],
+["TBMM hangi tarihte açılmıştır?","23 Nisan 1920","29 Ekim 1923","30 Ağustos 1922","10 Kasım 1938"],
+["Güneşin doğduğu ülke olarak bilinen ülke hangisidir?","Japonya","Çin","Hindistan","Kore"],
+["Pisagor teoremi hangi şekille ilgilidir?","Dik üçgen","Kare","Daire","Yamuk"],
+["Uçabilen tek memeli hayvan hangisidir?","Yarasa","Baykuş","Sincap","Leylek"],
+["Dünyanın en yüksek dağı hangisidir?","Everest","K2","Ağrı Dağı","Kilimanjaro"],
+["Hangi kıtada en çok ülke vardır?","Afrika","Asya","Avrupa","Güney Amerika"],
+["Nefes alırken vücudumuzun ihtiyaç duyduğu gaz hangisidir?","Oksijen","Karbondioksit","Azot","Helyum"],
+["Ses hangi ortamda en hızlı yayılır?","Katı","Sıvı","Gaz","Boşluk"],
+["Kuzey Yarımküre'de gündüzün en uzun olduğu mevsim hangisidir?","Yaz","Kış","İlkbahar","Sonbahar"],
+["Bir çiftlikte 3 tavuk ve 2 koyun vardır. Toplam kaç ayak vardır?","14","10","12","16"],
+["Ali, Veli'den uzun; Veli, Can'dan uzundur. En kısa kimdir?","Can","Ali","Veli","Belli değil"],
+["Babamın babasının oğlu, babam değilse bana ne olur?","Amca","Dayı","Enişte","Kuzen"],
+["Annemin annesinin kızı, annem değilse bana ne olur?","Teyze","Hala","Yenge","Abla"],
+["Sayı dizisinde sıradaki sayı kaçtır? 2, 4, 8, 16, ...","32","24","30","20"],
+["Sayı dizisinde sıradaki sayı kaçtır? 1, 4, 9, 16, ...","25","20","24","36"],
+["Saat tam 3 iken akrep ile yelkovan arasındaki açı kaç derecedir?","90","60","180","45"],
+["Aşağıdakilerden hangisi 7'nin katıdır?","49","47","51","55"],
+["Gökkuşağı hangi olay sonucunda oluşur?","Işığın su damlalarında kırılması","Ay tutulması","Rüzgar","Deprem"],
+["Bilgisayarın beyni olarak bilinen parça hangisidir?","İşlemci","Ekran","Klavye","Fare"],
+["Türkiye'nin kuzeyinde hangi deniz bulunur?","Karadeniz","Ege Denizi","Akdeniz","Marmara Denizi"],
+["Dünyanın en büyük hayvanı hangisidir?","Mavi balina","Fil","Zürafa","Köpekbalığı"],
+["Ay'a ilk ayak basan insan kimdir?","Neil Armstrong","Yuri Gagarin","Buzz Aldrin","John Glenn"],
+["Halkalarıyla en çok bilinen gezegen hangisidir?","Satürn","Mars","Merkür","Venüs"],
+["Giza Piramitleri hangi ülkededir?","Mısır","Irak","Libya","Sudan"],
+["Çin Seddi hangi ülkededir?","Çin","Japonya","Hindistan","Moğolistan"],
+["Afrika'nın doğusunda hangi okyanus bulunur?","Hint Okyanusu","Atlas Okyanusu","Pasifik Okyanusu","Arktik Okyanusu"],
+["Hangisi bir sürüngendir?","Timsah","Kurbağa","Semender","Yunus"],
+["Suyun gaz haline geçmesine ne denir?","Buharlaşma","Yoğuşma","Donma","Erime"],
+["Mıknatıs hangi maddeyi çeker?","Demir","Plastik","Cam","Tahta"],
+["Elektriği en iyi ileten madde hangisidir?","Bakır","Plastik","Lastik","Tahta"],
+["Dünya'nın kendi ekseni etrafında dönmesiyle ne oluşur?","Gece ve gündüz","Mevsimler","Gelgit","Yağmur"],
+["Bir zarın karşılıklı yüzlerinin toplamı kaçtır?","7","6","8","12"],
+["Bir bisikletçi saatte 15 km hızla 2 saatte kaç km gider?","30","15","45","60"],
+["Bir sayının 2 katı 18 ise bu sayı kaçtır?","9","8","16","36"],
+["Hangi sayı hem 2'ye hem 3'e tam bölünür?","12","14","15","20"],
+["Kırmızı ve mavi boyayı karıştırırsak hangi renk oluşur?","Mor","Yeşil","Turuncu","Sarı"]
+  ],
+  3: [
+["Dünyanın en kalabalık ülkesi hangisidir?","Hindistan","Çin","ABD","Endonezya"],
+["Osmanlı Devleti'nin kurucusu kimdir?","Osman Bey","Orhan Bey","Ertuğrul Gazi","Fatih Sultan Mehmet"],
+["Oksijenin kimyasal simgesi nedir?","O","Ox","Om","Og"],
+["Aşağıdakilerden hangisi asal sayıdır?","17","21","27","39"],
+["Bir torbada 5 kırmızı, 3 mavi bilye var. Bakmadan en az kaç bilye çekersen kesinlikle en az bir kırmızı almış olursun?","4","1","3","5"],
+["Sepette 6 elma var. Sen 4 tanesini aldın. Kaç elman olur?","4","2","6","10"],
+["Görelilik kuramıyla tanınan bilim insanı kimdir?","Albert Einstein","Isaac Newton","Galileo Galilei","Charles Darwin"],
+["Dünyanın en derin noktası neresidir?","Mariana Çukuru","Hazar Denizi","Baykal Gölü","Ölü Deniz"],
+["Çanakkale Deniz Zaferi hangi tarihte kazanılmıştır?","18 Mart 1915","18 Mart 1916","25 Nisan 1915","26 Ağustos 1914"],
+["Mimar Sinan'ın ustalık eseri olarak adlandırdığı yapı hangisidir?","Selimiye Camii","Süleymaniye Camii","Sultanahmet Camii","Ayasofya"],
+["Yüz ölçümü bakımından dünyanın en küçük ülkesi hangisidir?","Vatikan","Monako","Malta","San Marino"],
+["Nobel Edebiyat Ödülü'nü alan Türk yazar kimdir?","Orhan Pamuk","Yaşar Kemal","Nazım Hikmet","Aziz Nesin"],
+["Periyodik tabloda ilk sırada yer alan element hangisidir?","Hidrojen","Helyum","Oksijen","Karbon"],
+["Üç kalbi olan hayvan hangisidir?","Ahtapot","Balina","Kedi","Yılan"],
+["Güneş ışığıyla ciltte oluşan vitamin hangisidir?","D vitamini","C vitamini","A vitamini","B12 vitamini"],
+["Sefiller romanının yazarı kimdir?","Victor Hugo","Charles Dickens","Honoré de Balzac","Lev Tolstoy"],
+["Atatürk soyadı hangi yılda verilmiştir?","1934","1923","1930","1938"],
+["Harf Devrimi (yeni Türk harflerinin kabulü) hangi yılda yapılmıştır?","1928","1923","1934","1938"],
+["Türk kadınına milletvekili seçme ve seçilme hakkı hangi yılda verilmiştir?","1934","1923","1930","1946"],
+["Bir sayının 3 katının 4 fazlası 25 ise bu sayı kaçtır?","7","6","8","9"],
+["120 sayfalık bir kitabın yüzde 25'i kaç sayfadır?","30","25","40","20"],
+["Sayı dizisinde sıradaki sayı kaçtır? 1, 1, 2, 3, 5, 8, ...","13","11","12","15"],
+["Bir küpün kaç köşesi vardır?","8","6","12","4"],
+["Bir küpün kaç ayrıtı (kenarı) vardır?","12","8","6","10"],
+["Cesur kelimesinin eş anlamlısı hangisidir?","Yiğit","Korkak","Tembel","Cimri"],
+["Hangisi omurgasız bir hayvandır?","Ahtapot","Balık","Kurbağa","Yılan"],
+["Deprem büyüklüğünü ölçmekte kullanılan ölçek hangisidir?","Richter","Celsius","Beaufort","Kelvin"],
+["Mevsimlerin oluşmasının asıl nedeni nedir?","Dünya'nın ekseninin eğik olması","Dünya'nın Güneş'e yaklaşıp uzaklaşması","Ay'ın Dünya'ya yaklaşması","Güneş'in sönmesi"],
+["Efsanevi Truva Antik Kenti hangi ilimizdedir?","Çanakkale","İzmir","Antalya","Edirne"],
+["Efes Antik Kenti hangi ilimizin sınırlarındadır?","İzmir","Aydın","Muğla","Denizli"],
+["Peri bacalarıyla ünlü Kapadokya'nın merkezi sayılan il hangisidir?","Nevşehir","Konya","Sivas","Kayseri"],
+["Travertenleriyle ünlü Pamukkale hangi ildedir?","Denizli","Muğla","Aydın","Burdur"],
+["Nemrut Dağı'ndaki dev heykeller hangi ildedir?","Adıyaman","Van","Mardin","Sivas"],
+["Hititlerin başkenti neresidir?","Hattuşa","Truva","Efes","Bergama"],
+["Bitkilerin fotosentezde havadan aldığı gaz hangisidir?","Karbondioksit","Oksijen","Azot","Hidrojen"],
+["Hangi asal sayı aynı zamanda çift sayıdır?","2","1","3","0"],
+["Bir yılda yaklaşık kaç hafta vardır?","52","48","50","60"],
+["Dünyada en çok anadil olarak konuşulan dil hangisidir?","Çince (Mandarin)","İngilizce","İspanyolca","Hintçe"],
+["Bir üçgenin iç açıları toplamı kaç derecedir?","180","90","270","360"],
+["Çevresi 20 cm olan bir dikdörtgenin kısa kenarı 4 cm ise uzun kenarı kaç cm'dir?","6","5","8","16"],
+["Kutuda 10 kalem var. 3 tanesini verdim, sonra 2 kalem daha aldım. Kaç kalemim olur?","9","7","8","5"],
+["Bugün Salı ise 3 gün sonra hangi gündür?","Cuma","Perşembe","Cumartesi","Çarşamba"],
+["Hem Avrupa hem Asya kıtasında toprağı olan ülke hangisidir?","Türkiye","Almanya","Japonya","Mısır"]
+  ]
+};
+
+/* ==========================================================
+   SORU SECICI: her oyunda 5 kolay + 5 orta + 5 zor soru.
+   Daha once sorulan sorular kayit altina alinir (Store) ve
+   havuz tukenene kadar tekrar gelmez.
+   ========================================================== */
+const Bank = {
+  shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  },
+
+  toQuestion(row) {
+    const [soru, dogru, ...yanlislar] = row;
+    const opts = this.shuffle([{ t: dogru, ok: true }, ...yanlislar.map(t => ({ t, ok: false }))]);
+    const keys = ['a', 'b', 'c', 'd'];
+    const q = { soru };
+    opts.forEach((o, i) => { q[keys[i]] = o.t; if (o.ok) q.cevap = keys[i]; });
+    return q;
+  },
+
+  pick() {
+    let used;
+    try { used = new Set(JSON.parse(Store.get('used', '[]'))); } catch { used = new Set(); }
+    const result = [];
+
+    [1, 2, 3].forEach(level => {
+      const pool = BANK[level].map((row, i) => ({ row, id: `${level}-${i}` }));
+      let picked = this.shuffle(pool.filter(x => !used.has(x.id))).slice(0, CONFIG.PER_LEVEL);
+      if (picked.length < CONFIG.PER_LEVEL) {
+        /* Bu seviyedeki havuz bitti: sayaci sifirla, eksigi yeniden doldur */
+        pool.forEach(x => used.delete(x.id));
+        const rest = this.shuffle(pool.filter(x => !picked.includes(x)));
+        picked = picked.concat(rest.slice(0, CONFIG.PER_LEVEL - picked.length));
+      }
+      picked.forEach(x => { used.add(x.id); result.push(this.toQuestion(x.row)); });
+    });
+
+    Store.set('used', JSON.stringify([...used]));
+    return result;
+  }
+};
+
+/* ==========================================================
+   ARAYUZ
+   ========================================================== */
+const UI = {
+  show(name) {
+    $$('.screen').forEach(s => s.classList.remove('active'));
+    $('#screen-' + name).classList.add('active');
+    document.body.classList.toggle('in-game', name === 'game');
+  },
+
+  setLoading(on) { $('#loading').classList.toggle('active', on); },
+
+  setCount(text, note) {
+    const el = $('#countNum');
+    el.textContent = text;
+    el.classList.remove('pop');
+    void el.offsetWidth;
+    el.classList.add('pop');
+    if (note) $('#loadText').textContent = note;
+  },
+
+  setLoadNote(text) { $('#loadText').textContent = text; },
+  resetLoading() {
+    $('#countNum').hidden = false;
+    $('#loadText').style.color = '';
+    $('#cancelBtn').textContent = 'Vazgeç';
+  },
+  setLoadError(msg) {
+    $('#countNum').hidden = true;
+    const p = $('#loadText');
+    p.textContent = msg;
+    p.style.color = 'var(--danger)';
+    $('#cancelBtn').textContent = 'Tamam';
+  },
+
+  showError(message) { $('#menuError').textContent = message || ''; },
+
+  readConfig() {
+    return {
+      names: [
+        $('#name1').value.trim() || 'Oyuncu 1',
+        $('#name2').value.trim() || 'Oyuncu 2'
+      ]
+    };
+  },
+
+  half(side) { return $(`.half[data-side="${side}"]`); },
+
+  buildGame() {
+    const screen = $('#screen-game');
+    if ($('.half', screen)) return;
+
+    const jokers = `
+      <div class="jokers">
+        <button type="button" class="joker" data-joker="double">Çift Cevap</button>
+        <button type="button" class="joker" data-joker="steal">Zaman Hırsızı</button>
+        <button type="button" class="joker" data-joker="fifty">50:50</button>
+      </div>`;
+    const info = `
+      <div class="player-info">
+        <div class="player-name"></div>
+        <div class="meta"><span class="q-counter"></span><span class="score">0 puan</span></div>
+        <div class="state-line"></div>
+      </div>`;
+    const options = ['a', 'b', 'c', 'd'].map(k => `
+      <button type="button" class="opt" data-key="${k}">
+        <span class="letter">${k.toUpperCase()}</span>
+        <span class="opt-text"></span>
+      </button>`).join('');
+    const timer = `
+      <div class="timer">
+        <div class="timebar"><div class="timefill"></div></div>
+        <span class="time-num">0 sn</span>
+      </div>`;
+
+    const half = (side) => `
+      <div class="half p${side}" data-side="${side}">
+        <div class="half-top">${side === 1 ? jokers + info : info + jokers}</div>
+        <div class="q-card"><span class="q-text"></span></div>
+        <div class="options">${options}</div>
+        ${timer}
+      </div>`;
+
+    screen.insertAdjacentHTML('afterbegin', half(1) + half(2));
+  },
+
+  renderQuestion(question, index, total, names) {
+    $$('.half').forEach(half => {
+      const side = Number(half.dataset.side);
+      $('.player-name', half).textContent = names[side - 1];
+      $('.q-counter', half).textContent = `Soru ${index + 1} / ${total}`;
+      $('.q-text', half).textContent = question.soru;
+      this.setStatus(side, '');
+      $$('.opt', half).forEach(btn => {
+        $('.opt-text', btn).textContent = question[btn.dataset.key];
+        btn.className = 'opt';
+        btn.disabled = false;
+      });
+      $$('.joker.on', half).forEach(j => j.classList.remove('on'));
+    });
+  },
+
+  setStatus(side, text, kind = '') {
+    const el = $('.state-line', this.half(side));
+    el.textContent = text;
+    el.className = 'state-line ' + kind;
+  },
+
+  setScore(side, n) { $('.score', this.half(side)).textContent = `${n} puan`; },
+
+  renderTimer(side, time, limit) {
+    const half = this.half(side);
+    const fill = $('.timefill', half);
+    fill.style.width = Math.max(0, Math.min(100, (time / limit) * 100)) + '%';
+    fill.classList.toggle('low', time <= 3);
+    $('.time-num', half).textContent = `${Math.ceil(Math.max(0, time))} sn`;
+  },
+
+  markWrong(side, key) {
+    const btn = $(`.opt[data-key="${key}"]`, this.half(side));
+    btn.classList.add('wrong');
+    btn.disabled = true;
+  },
+
+  hideOptions(side, keys) {
+    keys.forEach(k => {
+      const btn = $(`.opt[data-key="${k}"]`, this.half(side));
+      btn.classList.add('hidden');
+      btn.disabled = true;
+    });
+  },
+
+  lockSide(side) { $$('.opt', this.half(side)).forEach(b => { b.disabled = true; }); },
+
+  reveal(correctKey) {
+    $$('.half').forEach(half => {
+      $$('.opt', half).forEach(b => { b.disabled = true; });
+      const ok = $(`.opt[data-key="${correctKey}"]`, half);
+      ok.classList.remove('wrong');
+      ok.classList.add('correct');
+    });
+  },
+
+  setJokerOn(side, type) {
+    const btn = $(`.joker[data-joker="${type}"]`, this.half(side));
+    btn.classList.add('on');
+  },
+  setJokerUsed(side, type) {
+    $(`.joker[data-joker="${type}"]`, this.half(side)).disabled = true;
+  },
+  resetJokers() {
+    $$('.joker').forEach(j => { j.disabled = false; j.classList.remove('on'); });
+  },
+
+  showWinner(names, scores) {
+    const [a, b] = scores;
+    const box = $('#winnerBox');
+    const tie = a === b;
+    box.className = 'winner-box ' + (tie ? '' : (a > b ? 'p1' : 'p2'));
+    $('#winnerTitle').textContent = tie ? 'Berabere!' : `${names[a > b ? 0 : 1]} kazandı!`;
+    $('#winnerScore').textContent = `${names[0]} ${a} – ${b} ${names[1]}`;
+    const conf = $('#confetti');
+    conf.innerHTML = '';
+    if (!tie) {
+      const colors = ['#9DB9D5', '#DDB196', '#8DB79A', '#E6C86E', '#B4574F'];
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement('i');
+        p.style.left = Math.random() * 100 + '%';
+        p.style.background = colors[i % colors.length];
+        p.style.animationDuration = (2.5 + Math.random() * 2.5) + 's';
+        p.style.animationDelay = (-Math.random() * 4) + 's';
+        conf.appendChild(p);
+      }
+    }
+    $('#winner').classList.add('active');
+  },
+  hideWinner() { $('#winner').classList.remove('active'); }
+};
+
+/* ==========================================================
+   OYUN
+   ========================================================== */
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const other = (side) => (side === 1 ? 2 : 1);
+
+const Game = {
+  questions: [],
+  current: 0,
+  players: ['Oyuncu 1', 'Oyuncu 2'],
+  scores: [0, 0],
+  used: {},
+  round: null,
+  phase: 'idle',      /* idle | playing | reveal | done */
+  runId: 0,
+  controller: null,
+  timerId: null,
+  nextId: null,
+  last: 0,
+
+  timeFor(index) { return index < CONFIG.SLOW_QUESTIONS ? CONFIG.TIME_NORMAL : CONFIG.TIME_FAST; },
+
+  /* ---------- Baslatma: geri sayim + arka planda soru cekme ---------- */
+  async start() {
+    const cfg = UI.readConfig();
+    UI.showError('');
+    Store.set('name1', cfg.names[0]);
+    Store.set('name2', cfg.names[1]);
+
+    this.stop();
+    const run = ++this.runId;
+    Sound.unlock();
+    UI.resetLoading();
+    UI.setLoading(true);
+    UI.setCount(CONFIG.COUNTDOWN_SECONDS, 'Hazır ol!');
+
+    for (let n = CONFIG.COUNTDOWN_SECONDS; n >= 1; n--) {
+      UI.setCount(n);
+      Sound.play('tick');
+      await sleep(1000);
+      if (run !== this.runId) return;
+    }
+
+    UI.setLoading(false);
+    this.questions = Bank.pick();
+    this.beginMatch(cfg.names);
+  },
+
+  cancel() {
+    this.runId++;
+    this.controller?.abort();
+    UI.setLoading(false);
+  },
+
+  beginMatch(names) {
+    this.players = names;
+    this.scores = [0, 0];
+    this.current = 0;
+    this.used = {
+      1: { double: false, steal: false, fifty: false },
+      2: { double: false, steal: false, fifty: false }
+    };
+    UI.buildGame();
+    UI.resetJokers();
+    UI.setScore(1, 0);
+    UI.setScore(2, 0);
+    UI.hideWinner();
+    UI.show('game');
+    Sound.play('start');
+    this.loadQuestion();
+  },
+
+  /* ---------- Soru dongusu ---------- */
+  loadQuestion() {
+    const q = this.questions[this.current];
+    const limit = this.timeFor(this.current);
+    this.round = {
+      limit,
+      time: { 1: limit, 2: limit },
+      locked: { 1: false, 2: false },
+      lives: { 1: 1, 2: 1 },
+      unavailable: { 1: new Set(), 2: new Set() },
+      beeped: { 1: false, 2: false },
+      over: false
+    };
+    this.phase = 'playing';
+    UI.renderQuestion(q, this.current, this.questions.length, this.players);
+    UI.renderTimer(1, limit, limit);
+    UI.renderTimer(2, limit, limit);
+
+    clearInterval(this.timerId);
+    this.last = performance.now();
+    this.timerId = setInterval(() => this.tick(), 100);
+  },
+
+  tick() {
+    const r = this.round;
+    if (this.phase !== 'playing' || !r || r.over) return;
+    const now = performance.now();
+    const dt = (now - this.last) / 1000;
+    this.last = now;
+
+    [1, 2].forEach(side => {
+      if (r.locked[side]) return;
+      r.time[side] -= dt;
+      if (r.time[side] <= 0) {
+        r.time[side] = 0;
+        r.locked[side] = true;
+        UI.lockSide(side);
+        UI.setStatus(side, 'Süre doldu', 'bad');
+        if (!r.beeped[side]) { r.beeped[side] = true; Sound.play('timeout'); }
+      }
+      UI.renderTimer(side, r.time[side], r.limit);
+    });
+    this.checkEnd();
+  },
+
+  checkEnd() {
+    const r = this.round;
+    if (r && !r.over && r.locked[1] && r.locked[2]) this.endQuestion(null);
+  },
+
+  answer(side, key) {
+    const r = this.round;
+    if (this.phase !== 'playing' || !r || r.over) return;
+    if (r.locked[side] || r.unavailable[side].has(key)) return;
+
+    const correct = this.questions[this.current].cevap;
+    if (key === correct) {
+      this.scores[side - 1]++;
+      UI.setScore(side, this.scores[side - 1]);
+      UI.setStatus(side, 'Doğru! +1 puan', 'ok');
+      Sound.play('correct');
+      this.endQuestion(side);
+      return;
+    }
+
+    /* Yanlis */
+    Sound.play('wrong');
+    r.unavailable[side].add(key);
+    UI.markWrong(side, key);
+    r.lives[side]--;
+    if (r.lives[side] <= 0) {
+      r.locked[side] = true;
+      UI.lockSide(side);
+      UI.setStatus(side, 'Yanlış! Bu soruda kilitlendin', 'bad');
+    } else {
+      UI.setStatus(side, 'Yanlış! Bir hakkın daha var', 'info');
+    }
+    this.checkEnd();
+  },
+
+  endQuestion(winner) {
+    const r = this.round;
+    if (!r || r.over) return;
+    r.over = true;
+    this.phase = 'reveal';
+    clearInterval(this.timerId);
+    UI.reveal(this.questions[this.current].cevap);
+
+    if (winner === null) {
+      UI.setStatus(1, 'Kimse doğru bilemedi', 'bad');
+      UI.setStatus(2, 'Kimse doğru bilemedi', 'bad');
+    } else {
+      UI.setStatus(other(winner), 'Rakip önce bildi', 'bad');
+    }
+
+    this.nextId = setTimeout(() => {
+      this.current++;
+      if (this.current >= this.questions.length) this.finish();
+      else this.loadQuestion();
+    }, CONFIG.REVEAL_MS);
+  },
+
+  finish() {
+    this.phase = 'done';
+    const [a, b] = this.scores;
+    Sound.play(a === b ? 'draw' : 'win');
+    UI.showWinner(this.players, this.scores);
+  },
+
+  /* ---------- Jokerler ---------- */
+  useJoker(side, type) {
+    const r = this.round;
+    if (this.phase !== 'playing' || !r || r.over || r.locked[side]) return;
+    if (!this.used[side] || this.used[side][type]) return;
+
+    if (type === 'double') {
+      r.lives[side] = 2;
+      UI.setStatus(side, 'Çift cevap aktif: 2 hakkın var', 'info');
+      UI.setJokerOn(side, type);
+    } else if (type === 'steal') {
+      const opp = other(side);
+      if (r.locked[opp] || r.time[opp] <= 0) return;
+      const amount = Math.min(CONFIG.STEAL_SECONDS, r.time[opp]);
+      r.time[opp] -= amount;
+      r.time[side] += amount;
+      UI.renderTimer(1, r.time[1], r.limit);
+      UI.renderTimer(2, r.time[2], r.limit);
+      const sec = Math.round(amount);
+      UI.setStatus(side, `+${sec} sn çaldın!`, 'ok');
+      UI.setStatus(opp, `Süren çalındı! −${sec} sn`, 'bad');
+    } else if (type === 'fifty') {
+      const correct = this.questions[this.current].cevap;
+      const wrongs = ['a', 'b', 'c', 'd'].filter(k => k !== correct && !r.unavailable[side].has(k));
+      if (!wrongs.length) return;
+      for (let i = wrongs.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [wrongs[i], wrongs[j]] = [wrongs[j], wrongs[i]];
+      }
+      const hide = wrongs.slice(0, 2);
+      hide.forEach(k => r.unavailable[side].add(k));
+      UI.hideOptions(side, hide);
+      UI.setStatus(side, '50:50 kullanıldı', 'info');
+    } else {
+      return;
+    }
+
+    this.used[side][type] = true;
+    UI.setJokerUsed(side, type);
+    Sound.play('joker');
+  },
+
+  stop() {
+    clearInterval(this.timerId);
+    clearTimeout(this.nextId);
+    this.phase = 'idle';
+    this.round = null;
+  },
+
+  backToMenu() {
+    this.runId++;
+    this.controller?.abort();
+    this.stop();
+    UI.setLoading(false);
+    UI.hideWinner();
+    UI.show('menu');
+  }
+};
+
+/* ==========================================================
+   BASLATMA
+   ========================================================== */
+const App = {
+  init() {
+    /* Kayitli ayarlari yukle */
+    $('#name1').value = Store.get('name1', 'Oyuncu 1');
+    $('#name2').value = Store.get('name2', 'Oyuncu 2');
+
+    Sound.init();
+
+    /* Menu olaylari */
+    $$('.name-card input').forEach(input => {
+      input.addEventListener('focus', () => input.select());
+    });
+    $('#playBtn').addEventListener('click', () => Game.start());
+    $('#soundBtn').addEventListener('click', () => Sound.toggle());
+    $('#cancelBtn').addEventListener('click', () => Game.cancel());
+    $('#backBtn').addEventListener('click', () => Game.backToMenu());
+    $('#menuBtn').addEventListener('click', () => Game.backToMenu());
+    $('#againBtn').addEventListener('click', () => { Game.backToMenu(); Game.start(); });
+
+    /* Genel buton tik sesi (cevap/joker/ses butonlari kendi seslerini calar) */
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (btn && !btn.matches('.opt, .joker, #soundBtn')) Sound.play('click');
+    });
+
+    /* Oyun ekrani olaylari (delegasyon) */
+    $('#screen-game').addEventListener('click', (e) => {
+      const half = e.target.closest('.half');
+      if (!half) return;
+      const side = Number(half.dataset.side);
+      const joker = e.target.closest('.joker');
+      const opt = e.target.closest('.opt');
+      if (joker) Game.useJoker(side, joker.dataset.joker);
+      else if (opt) Game.answer(side, opt.dataset.key);
+    });
+  }
+};
+
+App.init();
+</script>
+</body>
+</html>
